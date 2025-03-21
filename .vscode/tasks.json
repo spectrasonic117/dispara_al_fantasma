@@ -1,0 +1,25 @@
+{
+    "tasks": [
+        {
+            "type": "gradle",
+            "id": "/Users/spectra/Desktop/dispara_al_fantasmabuilddispara_al_fantasma",
+            "script": "build",
+            "description": "Assembles and tests this project.",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "project": "dispara_al_fantasma",
+            "buildFile": "/Users/spectra/Desktop/dispara_al_fantasma/build.gradle",
+            "rootProject": "dispara_al_fantasma",
+            "projectFolder": "/Users/spectra/Desktop/dispara_al_fantasma",
+            "workspaceFolder": "/Users/spectra/Desktop/dispara_al_fantasma",
+            "args": "",
+            "javaDebug": false,
+            "problemMatcher": [
+                "$gradle"
+            ],
+            "label": "gradle: build"
+        }
+    ]
+}

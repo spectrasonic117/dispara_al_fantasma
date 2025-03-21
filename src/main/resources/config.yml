@@ -1,0 +1,7 @@
+spawn_mobs:
+    pos1: { x: -289, y: 78, z: 153 }
+    pos2: { x: -211, y: 63, z: 222 }
+
+spawn_limit: 100
+
+snowball_inventory: 999
