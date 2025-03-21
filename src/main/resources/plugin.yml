@@ -1,0 +1,5 @@
+name: dispara_al_fantasma
+version: '${version}'
+main: com.spectrasonic.dispara_al_fantasma.Main
+api-version: '1.21'
+authors: [Spectrasonic]
