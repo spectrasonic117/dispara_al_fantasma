@@ -6,7 +6,7 @@ import com.spectrasonic.dispara_al_fantasma.Main;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import lombok.NoArgsConstructor;
-import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Bat;
 import org.bukkit.entity.Entity;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -41,9 +41,9 @@ public class DafCommand extends BaseCommand {
                 player.updateInventory();
             });
 
-            // Kill any remaining ghasts in all worlds
+            // Kill any remaining bats in all worlds
             Bukkit.getWorlds().forEach(world -> {
-                world.getEntitiesByClass(Ghast.class).forEach(Entity::remove);
+                world.getEntitiesByClass(Bat.class).forEach(Entity::remove);
             });
 
             MessageUtils.sendMessage(sender, "<yellow>Juego detenido y entidades eliminadas.</yellow>");

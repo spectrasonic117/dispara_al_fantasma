@@ -7,11 +7,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Bat;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.Mob;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +22,7 @@ public class GameManager {
     private final List<Entity> spawnedGhasts = new ArrayList<>();
 
     private static GameManager instance;
+    private final List<Entity> spawnedEntities = new ArrayList<>();
 
     public static GameManager getInstance() {
         if (instance == null) {
@@ -45,12 +43,12 @@ public class GameManager {
 
     public void stopGame(JavaPlugin plugin) {
         active = false;
-        for (Entity e : spawnedGhasts) {
+        for (Entity e : spawnedEntities) {
             if (e != null && !e.isDead()) {
                 e.remove();
             }
         }
-        spawnedGhasts.clear();
+        spawnedEntities.clear();
     }
 
     public void spawnMobs(JavaPlugin plugin) {
@@ -83,35 +81,18 @@ public class GameManager {
             double z = ThreadLocalRandom.current().nextDouble(minZ, maxZ);
 
             Location loc = new Location(world, x, y, z);
-            Ghast ghast = world.spawn(loc, Ghast.class, entity -> {
-                entity.setCustomName("Mini Ghast");
+            Bat bat = world.spawn(loc, Bat.class, entity -> {
+                entity.setCustomName("Murciélago");
                 entity.setCustomNameVisible(true);
-
-                // Set the ghast size to 1/4 of the original
                 entity.setPersistent(true);
 
-                // Apply size modification using attribute
-                AttributeInstance sizeAttribute = entity.getAttribute(Attribute.GENERIC_SCALE);
-                if (sizeAttribute != null) {
-                    sizeAttribute.setBaseValue(0.25); // 1/4 of original size
-                }
+                // Keep AI enabled for natural movement
+                // entity.setAI(true);
 
-                // Make the ghast non-aggressive
-                entity.setAware(false); // Prevents the ghast from targeting players
-
-                // Remove targeting goals
-                if (entity instanceof Mob) {
-                    Mob mob = (Mob) entity;
-                    mob.setTarget(null);
-                }
-
-                // Set AI flag to false to disable all AI
-                entity.setAI(false);
-
-                // But allow movement
-                entity.setGravity(false); // Makes them float better
+                // Make the bat not despawn
+                entity.setRemoveWhenFarAway(false);
             });
-            spawnedGhasts.add(ghast);
+            spawnedEntities.add(bat);
         }
     }
 }
