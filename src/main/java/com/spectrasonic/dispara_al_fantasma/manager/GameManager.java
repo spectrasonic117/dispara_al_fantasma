@@ -1,13 +1,16 @@
 package com.spectrasonic.dispara_al_fantasma.manager;
 
+import com.spectrasonic.dispara_al_fantasma.Main;
+import com.ticxo.modelengine.api.ModelEngineAPI;
+import com.ticxo.modelengine.api.model.ActiveModel;
+import com.ticxo.modelengine.api.model.ModeledEntity;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
+import org.bukkit.*;
 import org.bukkit.entity.Bat;
+import org.bukkit.entity.Entity;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -19,10 +22,19 @@ import java.util.concurrent.ThreadLocalRandom;
 public class GameManager {
 
     private boolean active;
-    private final List<Entity> spawnedGhasts = new ArrayList<>();
-
+    private final List<Entity> spawnedGhostEntities = new ArrayList<>();
     private static GameManager instance;
-    private final List<Entity> spawnedEntities = new ArrayList<>();
+
+    // Config values
+    private int goodGhostCount;
+    private int evilGhostCount;
+    private int snowballAmount;
+    private String goodGhostModelId;
+    private String evilGhostModelId;
+    private World spawnWorld;
+
+    // PDC Key
+    public static final NamespacedKey GHOST_TYPE_KEY = new NamespacedKey("dispara_al_fantasma", "ghost_type");
 
     public static GameManager getInstance() {
         if (instance == null) {
@@ -31,68 +43,166 @@ public class GameManager {
         return instance;
     }
 
+    // Carga los valores desde config.yml
+    public void loadConfigValues(JavaPlugin plugin) {
+        plugin.reloadConfig(); // Asegura leer la última versión
+
+        goodGhostCount = plugin.getConfig().getInt("ghost_counts.good_ghost", 50);
+        evilGhostCount = plugin.getConfig().getInt("ghost_counts.evil_ghost", 50);
+        snowballAmount = plugin.getConfig().getInt("snowball_inventory", 999);
+
+        goodGhostModelId = plugin.getConfig().getString("model_names.good_ghost", "good_ghost");
+        evilGhostModelId = plugin.getConfig().getString("model_names.evil_ghost", "evil_ghost");
+
+        String worldName = plugin.getConfig().getString("spawn_world");
+        if (worldName != null) {
+            spawnWorld = Bukkit.getWorld(worldName);
+        }
+        if (spawnWorld == null) {
+            spawnWorld = Bukkit.getWorlds().get(0); // Fallback al primer mundo
+            plugin.getLogger().warning(
+                    "No se especificó o no se encontró el mundo 'spawn_world' en config.yml. Usando el primer mundo disponible: "
+                            + spawnWorld.getName());
+        }
+        if (spawnWorld == null) {
+            plugin.getLogger().severe("No se pudo encontrar ningún mundo para spawnear entidades!");
+        }
+
+        plugin.getLogger().info("Configuración de GameManager cargada.");
+    }
+
     public void startGame(JavaPlugin plugin) {
+        if (active)
+            return;
+        if (!((Main) plugin).isModelEngineEnabled()) {
+            plugin.getLogger().severe("No se puede iniciar el juego, Model Engine no está habilitado.");
+            return;
+        }
         active = true;
         spawnMobs(plugin);
-        int snowballAmount = plugin.getConfig().getInt("snowball_inventory", 999);
         Bukkit.getOnlinePlayers().forEach(player -> {
-            player.getInventory()
-                    .addItem(new org.bukkit.inventory.ItemStack(org.bukkit.Material.SNOWBALL, snowballAmount));
+            player.getInventory().addItem(new ItemStack(Material.SNOWBALL, snowballAmount));
         });
     }
 
     public void stopGame(JavaPlugin plugin) {
+        if (!active)
+            return;
         active = false;
-        for (Entity e : spawnedEntities) {
-            if (e != null && !e.isDead()) {
-                e.remove();
+
+        spawnedGhostEntities.removeIf(entity -> {
+            if (entity != null && !entity.isDead()) {
+                entity.remove(); // Elimina la entidad Bukkit
+                return true; // Indica que se eliminó de la lista
             }
+            return entity == null || entity.isDead(); // Elimina nulos o ya muertos de la lista
+        });
+
+        if (spawnWorld != null) {
+            spawnWorld.getEntitiesByClass(Bat.class).forEach(bat -> {
+                if (bat.getPersistentDataContainer().has(GHOST_TYPE_KEY, PersistentDataType.STRING)) {
+                    if (!bat.isDead()) {
+                        bat.remove();
+                    }
+                }
+            });
         }
-        spawnedEntities.clear();
+        plugin.getLogger().info("Juego detenido y entidades limpiadas.");
     }
 
     public void spawnMobs(JavaPlugin plugin) {
-        if (!active)
+        if (!active || spawnWorld == null || !((Main) plugin).isModelEngineEnabled())
             return;
-        ConfigurationSection section = plugin.getConfig().getConfigurationSection("spawn_mobs");
-        if (section == null)
+
+        spawnGhostsOfType(plugin, goodGhostCount, goodGhostModelId, "good");
+        spawnGhostsOfType(plugin, evilGhostCount, evilGhostModelId, "evil");
+    }
+
+    private void spawnGhostsOfType(JavaPlugin plugin, int count, String modelId, String ghostType) {
+        if (modelId == null || modelId.isEmpty()) {
+            plugin.getLogger().warning("El ID del modelo para '" + ghostType + "' no está configurado o está vacío.");
             return;
-        double x1 = section.getConfigurationSection("pos1").getDouble("x");
-        double y1 = section.getConfigurationSection("pos1").getDouble("y");
-        double z1 = section.getConfigurationSection("pos1").getDouble("z");
-        double x2 = section.getConfigurationSection("pos2").getDouble("x");
-        double y2 = section.getConfigurationSection("pos2").getDouble("y");
-        double z2 = section.getConfigurationSection("pos2").getDouble("z");
-        World world = Bukkit.getWorlds().get(0);
-        int spawnLimit = plugin.getConfig().getInt("spawn_limit", 100);
-
-        for (int i = 0; i < spawnLimit; i++) {
-            // Ensure proper min/max values for random generation
-            double minX = Math.min(x1, x2);
-            double maxX = Math.max(x1, x2);
-            double minY = Math.min(y1, y2);
-            double maxY = Math.max(y1, y2);
-            double minZ = Math.min(z1, z2);
-            double maxZ = Math.max(z1, z2);
-
-            // Generate random coordinates within the defined region
-            double x = ThreadLocalRandom.current().nextDouble(minX, maxX);
-            double y = ThreadLocalRandom.current().nextDouble(minY, maxY);
-            double z = ThreadLocalRandom.current().nextDouble(minZ, maxZ);
-
-            Location loc = new Location(world, x, y, z);
-            Bat bat = world.spawn(loc, Bat.class, entity -> {
-                entity.setCustomName("Murciélago");
-                entity.setCustomNameVisible(true);
-                entity.setPersistent(true);
-
-                // Keep AI enabled for natural movement
-                // entity.setAI(true);
-
-                // Make the bat not despawn
-                entity.setRemoveWhenFarAway(false);
-            });
-            spawnedEntities.add(bat);
         }
+
+        int spawnedCount = 0;
+        for (int i = 0; i < count; i++) {
+            Location loc = getRandomLocation();
+            if (loc == null) {
+                plugin.getLogger().warning("No se pudo obtener una ubicación aleatoria para spawnear.");
+                continue;
+            }
+
+            if (!loc.isWorldLoaded() || !loc.getChunk().isLoaded()) {
+                loc.getChunk().load();
+            }
+
+            Bat bat = spawnWorld.spawn(loc, Bat.class, entity -> {
+                entity.setSilent(true);
+                entity.setAI(true);
+                entity.setRemoveWhenFarAway(false);
+                entity.setPersistent(true);
+                entity.setInvulnerable(true);
+                entity.getPersistentDataContainer().set(GHOST_TYPE_KEY, PersistentDataType.STRING, ghostType);
+            });
+
+            try {
+                if (!((Main) plugin).isModelEngineEnabled()) {
+                    plugin.getLogger()
+                            .severe("Model Engine no está habilitado al intentar aplicar modelo. Abortando spawn.");
+                    bat.remove();
+                    return;
+                }
+
+                ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(bat);
+                if (modeledEntity == null) {
+                    plugin.getLogger().warning("No se pudo crear ModeledEntity para el murciélago en " + loc);
+                    bat.remove();
+                    continue;
+                }
+
+                ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
+                if (activeModel != null) {
+                    modeledEntity.addModel(activeModel, true);
+                    spawnedGhostEntities.add(bat);
+                    spawnedCount++;
+                } else {
+                    plugin.getLogger()
+                            .warning("No se pudo crear ActiveModel para el ID: " + modelId + ". ¿Existe el modelo?");
+                    bat.remove();
+                }
+            } catch (Exception e) {
+                plugin.getLogger().severe("Error al aplicar modelo '" + modelId + "' a la entidad: " + e.getMessage());
+                e.printStackTrace();
+                bat.remove();
+            }
+        }
+        plugin.getLogger().info("Intentando spawnear " + count + " fantasmas de tipo: " + ghostType
+                + ". Spawneados exitosamente: " + spawnedCount);
+    }
+
+    private Location getRandomLocation() {
+        if (spawnWorld == null) {
+            System.out.println("spawnWorld es null");
+            return null;
+        }
+
+        double minX = -100; // Example values, adjust as needed
+        double maxX = 100;
+        double minY = 50;
+        double maxY = 100;
+        double minZ = -100;
+        double maxZ = 100;
+
+        double x = ThreadLocalRandom.current().nextDouble(minX, maxX);
+        double y = ThreadLocalRandom.current().nextDouble(minY, maxY);
+        double z = ThreadLocalRandom.current().nextDouble(minZ, maxZ);
+
+        return new Location(spawnWorld, x, y, z);
+    }
+
+    private Main plugin;
+
+    public void setPlugin(Main plugin) {
+        this.plugin = plugin;
     }
 }

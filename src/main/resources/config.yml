@@ -2,6 +2,11 @@ spawn_mobs:
     pos1: { x: -289, y: 78, z: 153 }
     pos2: { x: -211, y: 63, z: 222 }
 
-spawn_limit: 100
+good_ghost: 50
+evil_ghost: 50
 
 snowball_inventory: 999
+
+model_names:
+    good_ghost: "good_ghost"
+    evil_ghost: "evil_ghost"

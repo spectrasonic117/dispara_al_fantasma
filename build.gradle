@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.spectrasonic"
-version = "1.0.0-BATS"
+version = "1.0.0"
 
 repositories {
     gradlePluginPortal()
@@ -21,6 +21,10 @@ repositories {
     maven {
         name = "aikar"
         url = "https://repo.aikar.co/content/groups/aikar/"
+    }
+    maven { 
+        name = "ModelEngine"
+        url = "https://mvn.lumine.io/repository/maven-public/" 
     }
 }
 
@@ -41,8 +45,7 @@ dependencies {
     implementation "net.kyori:adventure-api:4.19.0"
     // implementation "net.kyori:adventure-text-serializer-legacy:4.19.0" // Legacy
 
-    // Paperweight
-    // paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT")
+    compileOnly "com.ticxo.modelengine:ModelEngine:R4.0.4"
 }
 
 shadowJar {
