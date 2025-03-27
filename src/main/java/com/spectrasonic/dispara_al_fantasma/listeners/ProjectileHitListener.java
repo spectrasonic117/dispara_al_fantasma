@@ -5,6 +5,7 @@ import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
@@ -16,9 +17,20 @@ public class ProjectileHitListener implements Listener {
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
         Projectile projectile = event.getEntity();
-        // Solo procesar si el juego está activo y es una bola de nieve
-        if (!GameManager.getInstance().isActive() || !(projectile.getShooter() instanceof Player)
-                || !(event.getHitEntity() instanceof Bat)) {
+
+        // Verificar que sea una bola de nieve
+        if (!(projectile instanceof Snowball)) {
+            return;
+        }
+
+        // Verificar que el juego esté activo y que el proyectil fue lanzado por un
+        // jugador
+        if (!GameManager.getInstance().isActive() || !(projectile.getShooter() instanceof Player)) {
+            return;
+        }
+
+        // Verificar que golpeó a un murciélago
+        if (!(event.getHitEntity() instanceof Bat)) {
             return;
         }
 
@@ -26,7 +38,7 @@ public class ProjectileHitListener implements Listener {
         Player shooter = (Player) projectile.getShooter();
         PersistentDataContainer pdc = bat.getPersistentDataContainer();
 
-        // Verificar si el murciélago tiene la etiqueta de tipo de fantasma [citation:4]
+        // Verificar si el murciélago tiene la etiqueta de tipo de fantasma
         if (pdc.has(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING)) {
             String ghostType = pdc.get(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING);
 
@@ -41,10 +53,8 @@ public class ProjectileHitListener implements Listener {
             // Eliminar el murciélago (y su modelo asociado)
             bat.remove();
 
-            // Opcional: Remover la bola de nieve para que no golpee más cosas
+            // Remover la bola de nieve para que no golpee más cosas
             projectile.remove();
         }
-        // Si no tiene la etiqueta, podría ser un murciélago normal, así que no hacemos
-        // nada.
     }
 }

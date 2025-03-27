@@ -47,9 +47,6 @@ public class DafCommand extends BaseCommand {
             // Limpiar bolas de nieve de inventarios
             Bukkit.getOnlinePlayers().forEach(player -> {
                 player.getInventory().remove(Material.SNOWBALL);
-                // player.getInventory().all(Material.SNOWBALL).keySet()
-                // .forEach(slot -> player.getInventory().setItem(slot, null));
-                // player.updateInventory(); // No siempre necesario con remove()
             });
 
             MessageUtils.sendMessage(sender, "<yellow>Juego detenido y entidades eliminadas.</yellow>");

@@ -7,6 +7,7 @@ import com.ticxo.modelengine.api.model.ModeledEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.*;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
@@ -26,6 +27,8 @@ public class GameManager {
     private static GameManager instance;
 
     // Config values
+    private double spawnX1, spawnY1, spawnZ1;
+    private double spawnX2, spawnY2, spawnZ2;
     private int goodGhostCount;
     private int evilGhostCount;
     private int snowballAmount;
@@ -35,6 +38,8 @@ public class GameManager {
 
     // PDC Key
     public static final NamespacedKey GHOST_TYPE_KEY = new NamespacedKey("dispara_al_fantasma", "ghost_type");
+
+    private Main plugin;
 
     public static GameManager getInstance() {
         if (instance == null) {
@@ -47,81 +52,174 @@ public class GameManager {
     public void loadConfigValues(JavaPlugin plugin) {
         plugin.reloadConfig(); // Asegura leer la última versión
 
-        goodGhostCount = plugin.getConfig().getInt("ghost_counts.good_ghost", 50);
-        evilGhostCount = plugin.getConfig().getInt("ghost_counts.evil_ghost", 50);
+        // Cargar coordenadas de spawn
+        ConfigurationSection spawnSection = plugin.getConfig().getConfigurationSection("spawn_mobs");
+        if (spawnSection != null) {
+            spawnX1 = spawnSection.getDouble("pos1.x", -100);
+            spawnY1 = spawnSection.getDouble("pos1.y", 70);
+            spawnZ1 = spawnSection.getDouble("pos1.z", -100);
+            spawnX2 = spawnSection.getDouble("pos2.x", 100);
+            spawnY2 = spawnSection.getDouble("pos2.y", 100);
+            spawnZ2 = spawnSection.getDouble("pos2.z", 100);
+
+            plugin.getLogger().info("Coordenadas de spawn cargadas: (" +
+                    spawnX1 + "," + spawnY1 + "," + spawnZ1 + ") a (" +
+                    spawnX2 + "," + spawnY2 + "," + spawnZ2 + ")");
+        } else {
+            plugin.getLogger()
+                    .warning("No se encontró la sección 'spawn_mobs' en config.yml. Usando valores predeterminados.");
+            // Valores predeterminados si no hay configuración
+            spawnX1 = -100;
+            spawnY1 = 70;
+            spawnZ1 = -100;
+            spawnX2 = 100;
+            spawnY2 = 100;
+            spawnZ2 = 100;
+        }
+
+        // Cargar cantidades de fantasmas
+        ConfigurationSection ghostCountsSection = plugin.getConfig().getConfigurationSection("ghost_counts");
+        if (ghostCountsSection != null) {
+            goodGhostCount = ghostCountsSection.getInt("good_ghost", 50);
+            evilGhostCount = ghostCountsSection.getInt("evil_ghost", 50);
+        } else {
+            // Intentar leer de la raíz para compatibilidad con versiones anteriores
+            goodGhostCount = plugin.getConfig().getInt("good_ghost_spawn", 50);
+            evilGhostCount = plugin.getConfig().getInt("evil_ghost_spawn", 50);
+        }
+
+        plugin.getLogger().info("Cantidades de fantasmas: buenos=" + goodGhostCount + ", malos=" + evilGhostCount);
+
+        // Cargar cantidad de bolas de nieve
         snowballAmount = plugin.getConfig().getInt("snowball_inventory", 999);
 
-        goodGhostModelId = plugin.getConfig().getString("model_names.good_ghost", "good_ghost");
-        evilGhostModelId = plugin.getConfig().getString("model_names.evil_ghost", "evil_ghost");
+        // Cargar IDs de modelos
+        ConfigurationSection modelNamesSection = plugin.getConfig().getConfigurationSection("model_names");
+        if (modelNamesSection != null) {
+            goodGhostModelId = modelNamesSection.getString("good_ghost", "good_ghost");
+            evilGhostModelId = modelNamesSection.getString("evil_ghost", "evil_ghost");
+        } else {
+            goodGhostModelId = "good_ghost";
+            evilGhostModelId = "evil_ghost";
+        }
 
+        plugin.getLogger().info("IDs de modelos: buenos=" + goodGhostModelId + ", malos=" + evilGhostModelId);
+
+        // Cargar mundo de spawn
         String worldName = plugin.getConfig().getString("spawn_world");
         if (worldName != null) {
             spawnWorld = Bukkit.getWorld(worldName);
-        }
-        if (spawnWorld == null) {
-            spawnWorld = Bukkit.getWorlds().get(0); // Fallback al primer mundo
-            plugin.getLogger().warning(
-                    "No se especificó o no se encontró el mundo 'spawn_world' en config.yml. Usando el primer mundo disponible: "
-                            + spawnWorld.getName());
-        }
-        if (spawnWorld == null) {
-            plugin.getLogger().severe("No se pudo encontrar ningún mundo para spawnear entidades!");
+            if (spawnWorld != null) {
+                plugin.getLogger().info("Usando mundo configurado: " + worldName);
+            } else {
+                plugin.getLogger().warning("El mundo configurado '" + worldName + "' no existe.");
+            }
         }
 
-        plugin.getLogger().info("Configuración de GameManager cargada.");
+        if (spawnWorld == null) {
+            spawnWorld = Bukkit.getWorlds().get(0); // Fallback al primer mundo
+            plugin.getLogger().warning("Usando el primer mundo disponible: " + spawnWorld.getName());
+        }
+
+        plugin.getLogger().info("Configuración de GameManager cargada correctamente.");
     }
 
     public void startGame(JavaPlugin plugin) {
-        if (active)
+        if (active) {
+            plugin.getLogger().info("El juego ya está activo, ignorando llamada a startGame()");
             return;
+        }
+
         if (!((Main) plugin).isModelEngineEnabled()) {
             plugin.getLogger().severe("No se puede iniciar el juego, Model Engine no está habilitado.");
             return;
         }
+
         active = true;
+        plugin.getLogger().info("Iniciando juego, spawneando fantasmas...");
+
+        // Limpiar entidades previas por si acaso
+        clearAllGhosts();
+
+        // Spawnear nuevos fantasmas
         spawnMobs(plugin);
+
+        // Dar bolas de nieve a los jugadores
         Bukkit.getOnlinePlayers().forEach(player -> {
             player.getInventory().addItem(new ItemStack(Material.SNOWBALL, snowballAmount));
+            plugin.getLogger().info("Dando " + snowballAmount + " bolas de nieve a " + player.getName());
         });
+
+        plugin.getLogger().info("Juego iniciado correctamente.");
     }
 
     public void stopGame(JavaPlugin plugin) {
-        if (!active)
+        if (!active) {
+            plugin.getLogger().info("El juego no está activo, ignorando llamada a stopGame()");
             return;
-        active = false;
+        }
 
+        active = false;
+        plugin.getLogger().info("Deteniendo juego, eliminando fantasmas...");
+
+        clearAllGhosts();
+
+        plugin.getLogger().info("Juego detenido correctamente.");
+    }
+
+    private void clearAllGhosts() {
+        // Eliminar entidades rastreadas
         spawnedGhostEntities.removeIf(entity -> {
             if (entity != null && !entity.isDead()) {
-                entity.remove(); // Elimina la entidad Bukkit
-                return true; // Indica que se eliminó de la lista
+                entity.remove();
+                return true;
             }
-            return entity == null || entity.isDead(); // Elimina nulos o ya muertos de la lista
+            return entity == null || entity.isDead();
         });
 
+        // Limpieza adicional por si acaso
         if (spawnWorld != null) {
             spawnWorld.getEntitiesByClass(Bat.class).forEach(bat -> {
                 if (bat.getPersistentDataContainer().has(GHOST_TYPE_KEY, PersistentDataType.STRING)) {
-                    if (!bat.isDead()) {
-                        bat.remove();
-                    }
+                    bat.remove();
                 }
             });
         }
-        plugin.getLogger().info("Juego detenido y entidades limpiadas.");
     }
 
     public void spawnMobs(JavaPlugin plugin) {
-        if (!active || spawnWorld == null || !((Main) plugin).isModelEngineEnabled())
+        if (!active) {
+            plugin.getLogger().warning("Intento de spawnear mobs mientras el juego no está activo");
             return;
+        }
 
-        spawnGhostsOfType(plugin, goodGhostCount, goodGhostModelId, "good");
-        spawnGhostsOfType(plugin, evilGhostCount, evilGhostModelId, "evil");
+        if (spawnWorld == null) {
+            plugin.getLogger().severe("No hay mundo de spawn configurado");
+            return;
+        }
+
+        if (!((Main) plugin).isModelEngineEnabled()) {
+            plugin.getLogger().severe("Model Engine no está habilitado, no se pueden spawnear mobs");
+            return;
+        }
+
+        plugin.getLogger().info("Spawneando fantasmas...");
+
+        // Spawnear fantasmas buenos
+        int goodSpawned = spawnGhostsOfType(plugin, goodGhostCount, goodGhostModelId, "good");
+        plugin.getLogger().info("Spawneados " + goodSpawned + "/" + goodGhostCount + " fantasmas buenos");
+
+        // Spawnear fantasmas malos
+        int evilSpawned = spawnGhostsOfType(plugin, evilGhostCount, evilGhostModelId, "evil");
+        plugin.getLogger().info("Spawneados " + evilSpawned + "/" + evilGhostCount + " fantasmas malos");
+
+        plugin.getLogger().info("Total de fantasmas spawneados: " + spawnedGhostEntities.size());
     }
 
-    private void spawnGhostsOfType(JavaPlugin plugin, int count, String modelId, String ghostType) {
+    private int spawnGhostsOfType(JavaPlugin plugin, int count, String modelId, String ghostType) {
         if (modelId == null || modelId.isEmpty()) {
             plugin.getLogger().warning("El ID del modelo para '" + ghostType + "' no está configurado o está vacío.");
-            return;
+            return 0;
         }
 
         int spawnedCount = 0;
@@ -132,27 +230,24 @@ public class GameManager {
                 continue;
             }
 
-            if (!loc.isWorldLoaded() || !loc.getChunk().isLoaded()) {
-                loc.getChunk().load();
+            // Asegurar que la chunk está cargada
+            if (!loc.getChunk().isLoaded()) {
+                loc.getChunk().load(true);
             }
 
-            Bat bat = spawnWorld.spawn(loc, Bat.class, entity -> {
-                entity.setSilent(true);
-                entity.setAI(true);
-                entity.setRemoveWhenFarAway(false);
-                entity.setPersistent(true);
-                entity.setInvulnerable(true);
-                entity.getPersistentDataContainer().set(GHOST_TYPE_KEY, PersistentDataType.STRING, ghostType);
-            });
-
             try {
-                if (!((Main) plugin).isModelEngineEnabled()) {
-                    plugin.getLogger()
-                            .severe("Model Engine no está habilitado al intentar aplicar modelo. Abortando spawn.");
-                    bat.remove();
-                    return;
-                }
+                // Spawnear murciélago
+                Bat bat = spawnWorld.spawn(loc, Bat.class, entity -> {
+                    entity.setSilent(true);
+                    entity.setAI(true);
+                    entity.setRemoveWhenFarAway(false);
+                    entity.setPersistent(true);
+                    entity.setInvulnerable(true);
+                    entity.setInvisible(true);
+                    entity.getPersistentDataContainer().set(GHOST_TYPE_KEY, PersistentDataType.STRING, ghostType);
+                });
 
+                // Aplicar modelo usando ModelEngine API
                 ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(bat);
                 if (modeledEntity == null) {
                     plugin.getLogger().warning("No se pudo crear ModeledEntity para el murciélago en " + loc);
@@ -161,46 +256,52 @@ public class GameManager {
                 }
 
                 ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
-                if (activeModel != null) {
-                    modeledEntity.addModel(activeModel, true);
-                    spawnedGhostEntities.add(bat);
-                    spawnedCount++;
-                } else {
+                if (activeModel == null) {
                     plugin.getLogger()
                             .warning("No se pudo crear ActiveModel para el ID: " + modelId + ". ¿Existe el modelo?");
                     bat.remove();
+                    continue;
                 }
+
+                // Añadir modelo a la entidad
+                modeledEntity.addModel(activeModel, true);
+
+                // Registrar entidad para limpieza posterior
+                spawnedGhostEntities.add(bat);
+                spawnedCount++;
+
             } catch (Exception e) {
-                plugin.getLogger().severe("Error al aplicar modelo '" + modelId + "' a la entidad: " + e.getMessage());
+                plugin.getLogger().severe("Error al spawnear fantasma: " + e.getMessage());
                 e.printStackTrace();
-                bat.remove();
             }
         }
-        plugin.getLogger().info("Intentando spawnear " + count + " fantasmas de tipo: " + ghostType
-                + ". Spawneados exitosamente: " + spawnedCount);
+
+        return spawnedCount;
     }
 
     private Location getRandomLocation() {
         if (spawnWorld == null) {
-            System.out.println("spawnWorld es null");
+            if (plugin != null) {
+                plugin.getLogger().severe("spawnWorld es null, no se puede generar ubicación aleatoria");
+            }
             return null;
         }
 
-        double minX = -100; // Example values, adjust as needed
-        double maxX = 100;
-        double minY = 50;
-        double maxY = 100;
-        double minZ = -100;
-        double maxZ = 100;
+        // Asegurar que min <= max
+        double minX = Math.min(spawnX1, spawnX2);
+        double maxX = Math.max(spawnX1, spawnX2);
+        double minY = Math.min(spawnY1, spawnY2);
+        double maxY = Math.max(spawnY1, spawnY2);
+        double minZ = Math.min(spawnZ1, spawnZ2);
+        double maxZ = Math.max(spawnZ1, spawnZ2);
 
+        // Generar coordenadas aleatorias dentro del área definida
         double x = ThreadLocalRandom.current().nextDouble(minX, maxX);
         double y = ThreadLocalRandom.current().nextDouble(minY, maxY);
         double z = ThreadLocalRandom.current().nextDouble(minZ, maxZ);
 
         return new Location(spawnWorld, x, y, z);
     }
-
-    private Main plugin;
 
     public void setPlugin(Main plugin) {
         this.plugin = plugin;

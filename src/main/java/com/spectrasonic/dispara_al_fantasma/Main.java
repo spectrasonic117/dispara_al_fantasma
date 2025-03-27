@@ -22,18 +22,15 @@ public final class Main extends JavaPlugin {
         saveDefaultConfig();
 
         if (!checkModelEngine()) {
-            // ModelEngine no está, deshabilitar o manejar como prefieras
             MessageUtils.sendConsoleMessage(
                     "<red>Model Engine no encontrado. El plugin no funcionará correctamente sin él.</red>");
-            // Podrías deshabilitar el plugin aquí si es estrictamente necesario:
-            // getServer().getPluginManager().disablePlugin(this);
-            // return;
         } else {
             MessageUtils.sendConsoleMessage("<green>Model Engine encontrado y habilitado.</green>");
         }
 
-        // Cargar configuración inicial del GameManager
-        GameManager.getInstance().loadConfigValues(this);
+        GameManager gameManager = GameManager.getInstance();
+        gameManager.setPlugin(this);
+        gameManager.loadConfigValues(this);
 
         registerCommands();
         registerEvents();
