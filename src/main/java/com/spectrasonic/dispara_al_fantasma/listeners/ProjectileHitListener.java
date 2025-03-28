@@ -1,7 +1,9 @@
 package com.spectrasonic.dispara_al_fantasma.listeners;
 
+import com.spectrasonic.dispara_al_fantasma.Main;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
+import com.spectrasonic.dispara_al_fantasma.Utils.PointsManager;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -42,10 +44,14 @@ public class ProjectileHitListener implements Listener {
         if (pdc.has(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING)) {
             String ghostType = pdc.get(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING);
 
+            PointsManager pointsManager = Main.getInstance().getPointsManager();
+
             if ("good".equals(ghostType)) {
+                pointsManager.addPoints(shooter, 1);
                 MessageUtils.sendActionBar(shooter, "<green>¡Has Puntuado!</green>");
                 // Aquí podrías añadir lógica de puntuación si la tienes
             } else if ("evil".equals(ghostType)) {
+                pointsManager.subtractPoints(shooter, 1);
                 MessageUtils.sendActionBar(shooter, "<red>Resta Punto</red>");
                 // Aquí podrías añadir lógica de penalización si la tienes
             }

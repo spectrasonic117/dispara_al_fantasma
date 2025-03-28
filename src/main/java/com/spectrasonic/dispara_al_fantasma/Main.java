@@ -5,6 +5,7 @@ import com.spectrasonic.dispara_al_fantasma.commands.DafCommand;
 import com.spectrasonic.dispara_al_fantasma.listeners.ProjectileHitListener;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
+import com.spectrasonic.dispara_al_fantasma.Utils.PointsManager;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,6 +16,7 @@ public final class Main extends JavaPlugin {
     private static Main instance;
     private PaperCommandManager commandManager;
     private boolean modelEngineEnabled = false;
+    private PointsManager pointsManager;
 
     @Override
     public void onEnable() {
@@ -31,6 +33,7 @@ public final class Main extends JavaPlugin {
         GameManager gameManager = GameManager.getInstance();
         gameManager.setPlugin(this);
         gameManager.loadConfigValues(this);
+        pointsManager = new PointsManager(this);
 
         registerCommands();
         registerEvents();

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.spectrasonic"
-version = "1.0.0-MEG"
+version = "1.0.1"
 
 repositories {
     gradlePluginPortal()
@@ -25,6 +25,9 @@ repositories {
     maven { 
         name = "ModelEngine"
         url = "https://mvn.lumine.io/repository/maven-public/" 
+    }
+    maven {
+        url = "https://repo.extendedclip.com/content/repositories/placeholderapi/"
     }
 }
 
@@ -46,13 +49,15 @@ dependencies {
     // implementation "net.kyori:adventure-text-serializer-legacy:4.19.0" // Legacy
 
     compileOnly "com.ticxo.modelengine:ModelEngine:R4.0.4"
+
+    compileOnly "me.clip:placeholderapi:2.11.6"
 }
 
 shadowJar {
     relocate "co.aikar.commands", "com.spectrasonic.dispara_al_fantasma.acf"
     relocate "co.aikar.locales", "com.spectrasonic.dispara_al_fantasma.locales"
     destinationDirectory = file("${rootDir}/out")
-    archiveFileName = "${rootProject.name}-${version}.jar" 
+    archiveFileName = "Spectra-${rootProject.name}-${version}.jar" 
 }
 
 build.dependsOn shadowJar
