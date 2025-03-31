@@ -4,6 +4,7 @@ import com.spectrasonic.dispara_al_fantasma.Main;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import com.spectrasonic.dispara_al_fantasma.Utils.PointsManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -56,6 +57,11 @@ public class ProjectileHitListener implements Listener {
 
             // Eliminar el murciélago (y su modelo asociado)
             bat.remove();
+
+            // Respawnear un nuevo fantasma del mismo tipo
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                GameManager.getInstance().spawnSingleGhost(Main.getInstance(), ghostType);
+            });
 
             // Remover la bola de nieve para que no golpee más cosas
             projectile.remove();

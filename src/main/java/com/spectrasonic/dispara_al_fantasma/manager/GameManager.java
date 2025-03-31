@@ -306,4 +306,35 @@ public class GameManager {
     public void setPlugin(Main plugin) {
         this.plugin = plugin;
     }
+
+    public boolean spawnSingleGhost(JavaPlugin plugin, String ghostType) {
+        if (!active) {
+            plugin.getLogger().warning("Intento de spawnear un fantasma mientras el juego no está activo");
+            return false;
+        }
+
+        if (spawnWorld == null) {
+            plugin.getLogger().severe("No hay mundo de spawn configurado");
+            return false;
+        }
+
+        if (!((Main) plugin).isModelEngineEnabled()) {
+            plugin.getLogger().severe("Model Engine no está habilitado, no se puede spawnear el fantasma");
+            return false;
+        }
+
+        String modelId;
+        if ("good".equals(ghostType)) {
+            modelId = goodGhostModelId;
+        } else if ("evil".equals(ghostType)) {
+            modelId = evilGhostModelId;
+        } else {
+            plugin.getLogger().warning("Tipo de fantasma desconocido: " + ghostType);
+            return false;
+        }
+
+        // Usar el método existente para spawnear un solo fantasma
+        int spawned = spawnGhostsOfType(plugin, 1, modelId, ghostType);
+        return spawned > 0;
+    }
 }
