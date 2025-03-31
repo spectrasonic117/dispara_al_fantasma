@@ -46,14 +46,12 @@ public class ProjectileHitListener implements Listener {
 
             PointsManager pointsManager = Main.getInstance().getPointsManager();
 
-            if ("good".equals(ghostType)) {
+            if ("evil".equals(ghostType)) {
                 pointsManager.addPoints(shooter, 1);
-                MessageUtils.sendActionBar(shooter, "<green>¡Has Puntuado!</green>");
-                // Aquí podrías añadir lógica de puntuación si la tienes
-            } else if ("evil".equals(ghostType)) {
-                pointsManager.subtractPoints(shooter, 1);
-                MessageUtils.sendActionBar(shooter, "<red>Resta Punto</red>");
-                // Aquí podrías añadir lógica de penalización si la tienes
+                MessageUtils.sendActionBar(shooter, "<green><b>+1 Punto");
+            } else if ("good".equals(ghostType)) {
+                pointsManager.subtractPoints(shooter, 3);
+                MessageUtils.sendActionBar(shooter, "<red><bold>-3 Puntos");
             }
 
             // Eliminar el murciélago (y su modelo asociado)
