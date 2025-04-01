@@ -3,12 +3,15 @@ package com.spectrasonic.dispara_al_fantasma.commands;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import com.spectrasonic.dispara_al_fantasma.Main;
+import com.spectrasonic.dispara_al_fantasma.Utils.ItemBuilder;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import lombok.NoArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 @CommandAlias("daf")
 @NoArgsConstructor
@@ -22,7 +25,9 @@ public class DafCommand extends BaseCommand {
     @CommandCompletion("start|stop")
     @Description("Inicia o detiene el minijuego Dispara al Fantasma.")
     public void onGame(CommandSender sender, @Name("action") String action) {
+        Player player = (Player) sender;
         if (action.equalsIgnoreCase("start")) {
+
             if (gameManager.isActive()) {
                 MessageUtils.sendMessage(sender, "<red>El juego ya está activo.</red>");
                 return;
@@ -32,6 +37,7 @@ public class DafCommand extends BaseCommand {
                         "<red>Error: Model Engine no está habilitado. No se puede iniciar el juego.</red>");
                 return;
             }
+            player.performCommand("id false");
             gameManager.startGame(plugin);
             MessageUtils.sendMessage(sender, "<green>Juego iniciado. ¡Fantasmas han aparecido!</green>");
             MessageUtils.broadcastTitle("<aqua>¡Dispara al Fantasma!</aqua>", "<white>El juego ha comenzado</white>", 1,
@@ -39,14 +45,17 @@ public class DafCommand extends BaseCommand {
 
         } else if (action.equalsIgnoreCase("stop")) {
             if (!gameManager.isActive()) {
+
                 MessageUtils.sendMessage(sender, "<red>El juego no está activo.</red>");
                 return;
             }
+            player.performCommand("id true");
             gameManager.stopGame(plugin);
 
-            // Limpiar bolas de nieve de inventarios
-            Bukkit.getOnlinePlayers().forEach(player -> {
-                player.getInventory().remove(Material.SNOWBALL);
+            // Limpiar arcos y flechas de inventarios
+            Bukkit.getOnlinePlayers().forEach(onlinePlayer -> {
+                onlinePlayer.getInventory().remove(Material.BOW);
+                onlinePlayer.getInventory().remove(Material.ARROW);
             });
 
             MessageUtils.sendMessage(sender, "<yellow>Juego detenido y entidades eliminadas.</yellow>");

@@ -4,6 +4,7 @@ import com.spectrasonic.dispara_al_fantasma.Main;
 import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
+import com.spectrasonic.dispara_al_fantasma.Utils.ItemBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.*;
@@ -144,10 +145,19 @@ public class GameManager {
         // Spawnear nuevos fantasmas
         spawnMobs(plugin);
 
-        // Dar bolas de nieve a los jugadores
+        // Dar arcos y flechas a los jugadores
         Bukkit.getOnlinePlayers().forEach(player -> {
-            player.getInventory().addItem(new ItemStack(Material.SNOWBALL, snowballAmount));
-            plugin.getLogger().info("Dando " + snowballAmount + " bolas de nieve a " + player.getName());
+            ItemStack bow = ItemBuilder.setMaterial("BOW")
+                    .setName("<gold>Arco Anti Fantasmas</gold>")
+                    .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
+                    .addEnchantment("infinity", 1)
+                    .setFlag("HIDE_ENCHANTS")
+                    .build();
+
+            ItemStack arrow = new ItemStack(Material.ARROW, 1);
+
+            player.getInventory().addItem(bow, arrow);
+            plugin.getLogger().info("Dando arco y flecha a " + player.getName());
         });
 
         plugin.getLogger().info("Juego iniciado correctamente.");

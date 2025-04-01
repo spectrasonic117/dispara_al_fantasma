@@ -2,13 +2,15 @@ package com.spectrasonic.dispara_al_fantasma.listeners;
 
 import com.spectrasonic.dispara_al_fantasma.Main;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
+import com.spectrasonic.dispara_al_fantasma.Utils.SoundUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import com.spectrasonic.dispara_al_fantasma.Utils.PointsManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
@@ -21,8 +23,8 @@ public class ProjectileHitListener implements Listener {
     public void onProjectileHit(ProjectileHitEvent event) {
         Projectile projectile = event.getEntity();
 
-        // Verificar que sea una bola de nieve
-        if (!(projectile instanceof Snowball)) {
+        // Verificar que sea una flecha
+        if (!(projectile instanceof Arrow)) {
             return;
         }
 
@@ -32,7 +34,7 @@ public class ProjectileHitListener implements Listener {
             return;
         }
 
-        // Verificar que golpeó a un murciélago
+        // Verificar que golpeó a un murciélago / Fantasma
         if (!(event.getHitEntity() instanceof Bat)) {
             return;
         }
@@ -50,9 +52,11 @@ public class ProjectileHitListener implements Listener {
             if ("evil".equals(ghostType)) {
                 pointsManager.addPoints(shooter, 1);
                 MessageUtils.sendActionBar(shooter, "<green><b>+1 Punto");
+                SoundUtils.playerSound(shooter, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
             } else if ("good".equals(ghostType)) {
                 pointsManager.subtractPoints(shooter, 3);
                 MessageUtils.sendActionBar(shooter, "<red><bold>-3 Puntos");
+                SoundUtils.playerSound(shooter, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
             }
 
             // Eliminar el murciélago (y su modelo asociado)
@@ -63,7 +67,7 @@ public class ProjectileHitListener implements Listener {
                 GameManager.getInstance().spawnSingleGhost(Main.getInstance(), ghostType);
             });
 
-            // Remover la bola de nieve para que no golpee más cosas
+            // Remover la flecha para que no golpee más cosas
             projectile.remove();
         }
     }
