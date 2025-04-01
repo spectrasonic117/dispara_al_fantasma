@@ -151,6 +151,7 @@ public class GameManager {
                     .setName("<gold>Arco Anti Fantasmas</gold>")
                     .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
                     .addEnchantment("infinity", 1)
+                    .setUnbreakable(true)
                     .setFlag("HIDE_ENCHANTS")
                     .build();
 

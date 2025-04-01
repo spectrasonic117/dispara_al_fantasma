@@ -18,7 +18,8 @@ public class ItemBuilder {
 
     public static ItemBuilder setMaterial(String materialName) {
         Material material = Material.matchMaterial(materialName.toUpperCase());
-        if (material == null) throw new IllegalArgumentException("Invalid material: " + materialName);
+        if (material == null)
+            throw new IllegalArgumentException("Invalid material: " + materialName);
         return new ItemBuilder(material);
     }
 
@@ -62,6 +63,11 @@ public class ItemBuilder {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid flag: " + flagName);
         }
+    }
+
+    public ItemBuilder setUnbreakable(boolean unbreakable) {
+        meta.setUnbreakable(unbreakable);
+        return this;
     }
 
     public ItemStack build() {

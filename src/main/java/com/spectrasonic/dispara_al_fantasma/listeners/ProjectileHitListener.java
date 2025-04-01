@@ -56,7 +56,7 @@ public class ProjectileHitListener implements Listener {
             } else if ("good".equals(ghostType)) {
                 pointsManager.subtractPoints(shooter, 3);
                 MessageUtils.sendActionBar(shooter, "<red><bold>-3 Puntos");
-                SoundUtils.playerSound(shooter, Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
+                SoundUtils.playerSound(shooter, Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.0f, 1.0f);
             }
 
             // Eliminar el murciélago (y su modelo asociado)
