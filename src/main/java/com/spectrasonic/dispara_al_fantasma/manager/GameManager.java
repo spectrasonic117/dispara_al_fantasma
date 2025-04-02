@@ -172,9 +172,15 @@ public class GameManager {
 
         active = false;
         plugin.getLogger().info("Deteniendo juego, eliminando fantasmas...");
-
+    
         clearAllGhosts();
-
+    
+        // Clear all player inventories
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            player.getInventory().clear();
+            plugin.getLogger().info("Inventario limpiado para " + player.getName());
+        });
+    
         plugin.getLogger().info("Juego detenido correctamente.");
     }
 
