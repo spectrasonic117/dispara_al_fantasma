@@ -3,15 +3,13 @@ package com.spectrasonic.dispara_al_fantasma.commands;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import com.spectrasonic.dispara_al_fantasma.Main;
-import com.spectrasonic.dispara_al_fantasma.Utils.ItemBuilder;
 import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import lombok.NoArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.GameMode;
 
 @CommandAlias("daf")
 @NoArgsConstructor
@@ -21,7 +19,7 @@ public class DafCommand extends BaseCommand {
     private final GameManager gameManager = GameManager.getInstance();
 
     @Subcommand("game")
-    @CommandPermission("daf.admin.game")
+    @CommandPermission("daf.admin")
     @CommandCompletion("start|stop")
     @Description("Inicia o detiene el minijuego Dispara al Fantasma.")
     public void onGame(CommandSender sender, @Name("action") String action) {
@@ -49,13 +47,15 @@ public class DafCommand extends BaseCommand {
                 MessageUtils.sendMessage(sender, "<red>El juego no está activo.</red>");
                 return;
             }
+            // In the onGame method, inside the stop action
             player.performCommand("id true");
             gameManager.stopGame(plugin);
 
-            // Limpiar arcos y flechas de inventarios
+            // Limpiar arcos y flechas solo de inventarios de jugadores en modo ADVENTURE
             Bukkit.getOnlinePlayers().forEach(onlinePlayer -> {
-                onlinePlayer.getInventory().remove(Material.BOW);
-                onlinePlayer.getInventory().remove(Material.ARROW);
+                if (onlinePlayer.getGameMode() == GameMode.ADVENTURE) {
+                    onlinePlayer.getInventory().clear();
+                }
             });
 
             MessageUtils.sendMessage(sender, "<yellow>Juego detenido y entidades eliminadas.</yellow>");
@@ -69,7 +69,7 @@ public class DafCommand extends BaseCommand {
     }
 
     @Subcommand("reload")
-    @CommandPermission("daf.admin.reload")
+    @CommandPermission("daf.admin")
     @Description("Recarga la configuración del plugin.")
     public void onReload(CommandSender sender) {
         // Recargar config.yml de Bukkit
@@ -85,7 +85,7 @@ public class DafCommand extends BaseCommand {
     }
 
     @Subcommand("spawn")
-    @CommandPermission("daf.admin.spawn")
+    @CommandPermission("daf.admin")
     @Description("Fuerza el spawn de una nueva oleada de fantasmas (si el juego está activo).")
     public void onSpawn(CommandSender sender) {
         if (!gameManager.isActive()) {
@@ -105,6 +105,7 @@ public class DafCommand extends BaseCommand {
     @Default
     @HelpCommand
     @Subcommand("help")
+    @CommandPermission("daf.admin")
     @Description("Muestra la ayuda de comandos.")
     public void onHelp(CommandSender sender) {
         MessageUtils.sendMessage(sender, "<gold>Comandos de Dispara al Fantasma:</gold>");

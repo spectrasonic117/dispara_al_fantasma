@@ -145,20 +145,22 @@ public class GameManager {
         // Spawnear nuevos fantasmas
         spawnMobs(plugin);
 
-        // Dar arcos y flechas a los jugadores
+        // Dar arcos y flechas solo a los jugadores en modo ADVENTURE
         Bukkit.getOnlinePlayers().forEach(player -> {
-            ItemStack bow = ItemBuilder.setMaterial("BOW")
-                    .setName("<gold>Arco Anti Fantasmas</gold>")
-                    .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
-                    .addEnchantment("infinity", 1)
-                    .setUnbreakable(true)
-                    .setFlag("HIDE_ENCHANTS")
-                    .build();
+            // Verificar si el jugador está en modo ADVENTURE
+            if (player.getGameMode() == GameMode.ADVENTURE) {
+                ItemStack bow = ItemBuilder.setMaterial("BOW")
+                        .setName("<gold>Arco Anti Fantasmas</gold>")
+                        .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
+                        .addEnchantment("infinity", 1)
+                        .setUnbreakable(true)
+                        .setFlag("HIDE_ENCHANTS")
+                        .build();
 
-            ItemStack arrow = new ItemStack(Material.ARROW, 1);
+                ItemStack arrow = new ItemStack(Material.ARROW, 1);
 
-            player.getInventory().addItem(bow, arrow);
-            plugin.getLogger().info("Dando arco y flecha a " + player.getName());
+                player.getInventory().addItem(bow, arrow);
+            }
         });
 
         plugin.getLogger().info("Juego iniciado correctamente.");
@@ -172,15 +174,16 @@ public class GameManager {
 
         active = false;
         plugin.getLogger().info("Deteniendo juego, eliminando fantasmas...");
-    
+
         clearAllGhosts();
-    
-        // Clear all player inventories
+
+        // Clear only ADVENTURE mode players' inventories
         Bukkit.getOnlinePlayers().forEach(player -> {
-            player.getInventory().clear();
-            plugin.getLogger().info("Inventario limpiado para " + player.getName());
+            if (player.getGameMode() == GameMode.ADVENTURE) {
+                player.getInventory().clear();
+            }
         });
-    
+
         plugin.getLogger().info("Juego detenido correctamente.");
     }
 

@@ -4,3 +4,13 @@ main: com.spectrasonic.dispara_al_fantasma.Main
 api-version: "1.21"
 authors: [Spectrasonic]
 depends: [ModelEngine]
+
+commands:
+    daf:
+        permission: "daf.admi"
+        aliases: ["disparaalfantasma"]
+
+permissions:
+    daf.admin:
+        description: "Gives access to all admin commands"
+        default: op
