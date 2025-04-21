@@ -7,8 +7,8 @@ depends: [ModelEngine]
 
 commands:
     daf:
-        permission: "daf.admi"
-        aliases: ["disparaalfantasma"]
+        permission: daf.admin
+        aliases: [disparaalfantasma]
 
 permissions:
     daf.admin:

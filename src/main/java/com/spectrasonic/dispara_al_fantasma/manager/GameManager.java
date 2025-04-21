@@ -154,6 +154,7 @@ public class GameManager {
                         .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
                         .addEnchantment("infinity", 1)
                         .setUnbreakable(true)
+                        .setCustomModelData(1000)
                         .setFlag("HIDE_ENCHANTS")
                         .build();
 
