@@ -1,11 +1,10 @@
 package com.spectrasonic.dispara_al_fantasma.listeners;
 
 import com.spectrasonic.dispara_al_fantasma.Main;
-import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
-import com.spectrasonic.dispara_al_fantasma.Utils.SoundUtils;
 import com.spectrasonic.dispara_al_fantasma.manager.GameManager;
 import com.spectrasonic.dispara_al_fantasma.Utils.PointsManager;
-import org.bukkit.Bukkit;
+import com.spectrasonic.dispara_al_fantasma.Utils.MessageUtils;
+import com.spectrasonic.dispara_al_fantasma.Utils.SoundUtils;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Bat;
@@ -23,14 +22,17 @@ public class ProjectileHitListener implements Listener {
     public void onProjectileHit(ProjectileHitEvent event) {
         Projectile projectile = event.getEntity();
 
-        // Verificar que sea una flecha
-        if (!(projectile instanceof Arrow)) {
-            return;
+        // Verificar que el proyectil sea una flecha y que haya sido disparado por un jugador
+        if (!(projectile instanceof Arrow) || !(projectile.getShooter() instanceof Player)) {
+             return;
         }
 
-        // Verificar que el juego esté activo y que el proyectil fue lanzado por un
-        // jugador
-        if (!GameManager.getInstance().isActive() || !(projectile.getShooter() instanceof Player)) {
+        GameManager gameManager = GameManager.getInstance(); // Get GameManager instance
+        Main plugin = Main.getInstance(); // Get plugin instance
+        Player shooter = (Player) projectile.getShooter(); // Cast shooter here
+
+        // Verificar que el juego esté activo
+        if (!gameManager.isActive()) {
             return;
         }
 
@@ -40,35 +42,86 @@ public class ProjectileHitListener implements Listener {
         }
 
         Bat bat = (Bat) event.getHitEntity();
-        Player shooter = (Player) projectile.getShooter();
         PersistentDataContainer pdc = bat.getPersistentDataContainer();
 
         // Verificar si el murciélago tiene la etiqueta de tipo de fantasma
         if (pdc.has(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING)) {
             String ghostType = pdc.get(GameManager.GHOST_TYPE_KEY, PersistentDataType.STRING);
+            int currentRound = gameManager.getCurrentRound(); // Get the current round
+            int pointsChange = 0; // Points to add or subtract
+            String messageColor = "<green>"; // Default message color
 
             PointsManager pointsManager = Main.getInstance().getPointsManager();
 
+            // Determine points based on ghost type and round
             if ("evil".equals(ghostType)) {
-                pointsManager.addPoints(shooter, 1);
-                MessageUtils.sendActionBar(shooter, "<green><b>+1 Punto");
-                SoundUtils.playerSound(shooter, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+                // Evil ghost points decrease
+                switch (currentRound) {
+                    case 1:
+                        pointsChange = -1; // Ronda 1: evil_ghost -1
+                        messageColor = "<red>";
+                        break;
+                    case 2:
+                        pointsChange = -3; // Ronda 2: evil_ghost -3
+                        messageColor = "<red>";
+                        break;
+                    case 3:
+                        pointsChange = -5; // Ronda 3: evil_ghost -5
+                        messageColor = "<red>";
+                        break;
+                    default:
+                        // Should not happen if game is active and round is set correctly
+                        plugin.getLogger().warning("Projectile hit evil ghost with unknown round " + currentRound);
+                        return; // Exit the method
+                }
             } else if ("good".equals(ghostType)) {
-                pointsManager.subtractPoints(shooter, 3);
-                MessageUtils.sendActionBar(shooter, "<red><bold>-3 Puntos");
-                SoundUtils.playerSound(shooter, Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.0f, 1.0f);
+                // Good ghost points increase
+                 switch (currentRound) {
+                    case 1:
+                        pointsChange = 2; // Ronda 1: good_ghost +2
+                        messageColor = "<green>";
+                        break;
+                    case 2:
+                        pointsChange = 4; // Ronda 2: good_ghost +4
+                        messageColor = "<green>";
+                        break;
+                    case 3:
+                        pointsChange = 6; // Ronda 3: good_ghost +6
+                        messageColor = "<green>";
+                        break;
+                    default:
+                         // Should not happen
+                        plugin.getLogger().warning("Projectile hit good ghost with unknown round " + currentRound);
+                        return; // Exit the method
+                }
+            } else {
+                // Unknown ghost type - log and ignore
+                plugin.getLogger().warning("Projectile hit entity with unknown ghost type: " + ghostType + " at " + bat.getLocation());
+                return; // Don't process if type is unknown, exit the method
             }
 
-            // Eliminar el murciélago (y su modelo asociado)
+            // Add/Subtract points and provide feedback
+            if (pointsChange > 0) {
+                pointsManager.addPoints(shooter, pointsChange);
+                 MessageUtils.sendActionBar(shooter, messageColor + "<b>+" + pointsChange + "</b>");
+                 SoundUtils.playerSound(shooter, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+            } else { // pointsChange is 0 or negative
+                 pointsManager.subtractPoints(shooter, Math.abs(pointsChange)); // Use Math.abs to subtract correctly
+                 MessageUtils.sendActionBar(shooter, messageColor + "<b>" + pointsChange + "</b>"); // pointsChange is already negative
+                 SoundUtils.playerSound(shooter, Sound.ENTITY_BLAZE_HURT, 1.0f, 1.0f); // Sound for hitting bad ghost
+            }
+
+            // Remove the hit ghost entity
             bat.remove();
 
-            // Respawnear un nuevo fantasma del mismo tipo
-            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                GameManager.getInstance().spawnSingleGhost(Main.getInstance(), ghostType);
-            });
+            // Attempt to spawn a new ghost to replace the one removed
+            // We can decide if we want to replace any ghost hit or only specific types
+            // For now, let's try to replace any hit ghost
+            boolean spawned = gameManager.spawnSingleGhost(plugin, ghostType); // Try to spawn the same type
 
-            // Remover la flecha para que no golpee más cosas
-            projectile.remove();
+            if (!spawned) {
+                plugin.getLogger().warning("Failed to spawn replacement ghost of type: " + ghostType);
+            }
         }
     }
 }

@@ -27,6 +27,8 @@ public class GameManager {
     private final List<Entity> spawnedGhostEntities = new ArrayList<>();
     private static GameManager instance;
 
+    private int currentRound;
+
     // Config values
     private double spawnX1, spawnY1, spawnZ1;
     private double spawnX2, spawnY2, spawnZ2;
@@ -49,11 +51,8 @@ public class GameManager {
         return instance;
     }
 
-    // Carga los valores desde config.yml
     public void loadConfigValues(JavaPlugin plugin) {
-        plugin.reloadConfig(); // Asegura leer la última versión
-
-        // Cargar coordenadas de spawn
+        plugin.reloadConfig();
         ConfigurationSection spawnSection = plugin.getConfig().getConfigurationSection("spawn_mobs");
         if (spawnSection != null) {
             spawnX1 = spawnSection.getDouble("pos1.x", -100);
@@ -69,7 +68,6 @@ public class GameManager {
         } else {
             plugin.getLogger()
                     .warning("No se encontró la sección 'spawn_mobs' en config.yml. Usando valores predeterminados.");
-            // Valores predeterminados si no hay configuración
             spawnX1 = -100;
             spawnY1 = 70;
             spawnZ1 = -100;
@@ -78,23 +76,19 @@ public class GameManager {
             spawnZ2 = 100;
         }
 
-        // Cargar cantidades de fantasmas
         ConfigurationSection ghostCountsSection = plugin.getConfig().getConfigurationSection("ghost_counts");
         if (ghostCountsSection != null) {
             goodGhostCount = ghostCountsSection.getInt("good_ghost", 50);
             evilGhostCount = ghostCountsSection.getInt("evil_ghost", 50);
         } else {
-            // Intentar leer de la raíz para compatibilidad con versiones anteriores
             goodGhostCount = plugin.getConfig().getInt("good_ghost_spawn", 50);
             evilGhostCount = plugin.getConfig().getInt("evil_ghost_spawn", 50);
         }
 
         plugin.getLogger().info("Cantidades de fantasmas: buenos=" + goodGhostCount + ", malos=" + evilGhostCount);
 
-        // Cargar cantidad de bolas de nieve
         snowballAmount = plugin.getConfig().getInt("snowball_inventory", 999);
 
-        // Cargar IDs de modelos
         ConfigurationSection modelNamesSection = plugin.getConfig().getConfigurationSection("model_names");
         if (modelNamesSection != null) {
             goodGhostModelId = modelNamesSection.getString("good_ghost", "good_ghost");
@@ -106,7 +100,6 @@ public class GameManager {
 
         plugin.getLogger().info("IDs de modelos: buenos=" + goodGhostModelId + ", malos=" + evilGhostModelId);
 
-        // Cargar mundo de spawn
         String worldName = plugin.getConfig().getString("spawn_world");
         if (worldName != null) {
             spawnWorld = Bukkit.getWorld(worldName);
@@ -118,78 +111,46 @@ public class GameManager {
         }
 
         if (spawnWorld == null) {
-            spawnWorld = Bukkit.getWorlds().get(0); // Fallback al primer mundo
+            spawnWorld = Bukkit.getWorlds().get(0);
             plugin.getLogger().warning("Usando el primer mundo disponible: " + spawnWorld.getName());
         }
 
         plugin.getLogger().info("Configuración de GameManager cargada correctamente.");
     }
 
-    public void startGame(JavaPlugin plugin) {
-        if (active) {
-            plugin.getLogger().info("El juego ya está activo, ignorando llamada a startGame()");
-            return;
-        }
-
-        if (!((Main) plugin).isModelEngineEnabled()) {
-            plugin.getLogger().severe("No se puede iniciar el juego, Model Engine no está habilitado.");
-            return;
-        }
-
-        active = true;
-        plugin.getLogger().info("Iniciando juego, spawneando fantasmas...");
-
-        // Limpiar entidades previas por si acaso
+    public void startGame(JavaPlugin plugin, int round) {
+        this.active = true;
+        this.currentRound = round;
         clearAllGhosts();
-
-        // Spawnear nuevos fantasmas
         spawnMobs(plugin);
 
-        // Dar arcos y flechas solo a los jugadores en modo ADVENTURE
         Bukkit.getOnlinePlayers().forEach(player -> {
-            // Verificar si el jugador está en modo ADVENTURE
             if (player.getGameMode() == GameMode.ADVENTURE) {
-                ItemStack bow = ItemBuilder.setMaterial("BOW")
-                        .setName("<gold>Arco Anti Fantasmas</gold>")
-                        .setLore("<gray>Usa este arco para disparar a los fantasmas</gray>")
+                player.getInventory().clear();
+                ItemStack bow = ItemBuilder.setMaterial("Zipper")
+                        .setName("<gold>Zipper Anti Fantasmas</gold>")
+                        .setLore("<gray>Usa este Zipper para disparar a los fantasmas</gray>")
                         .addEnchantment("infinity", 1)
                         .setUnbreakable(true)
                         .setCustomModelData(1000)
                         .setFlag("HIDE_ENCHANTS")
                         .build();
-
-                ItemStack arrow = new ItemStack(Material.ARROW, 1);
-
-                player.getInventory().addItem(bow, arrow);
+                player.getInventory().addItem(bow);
+                player.getInventory().addItem(new ItemStack(Material.SNOWBALL, snowballAmount));
             }
         });
 
-        plugin.getLogger().info("Juego iniciado correctamente.");
+        plugin.getLogger().info("Game started (Round " + round + ")");
     }
 
     public void stopGame(JavaPlugin plugin) {
-        if (!active) {
-            plugin.getLogger().info("El juego no está activo, ignorando llamada a stopGame()");
-            return;
-        }
-
-        active = false;
-        plugin.getLogger().info("Deteniendo juego, eliminando fantasmas...");
-
+        this.active = false;
         clearAllGhosts();
-
-        // Clear only ADVENTURE mode players' inventories
-        Bukkit.getOnlinePlayers().forEach(player -> {
-            if (player.getGameMode() == GameMode.ADVENTURE) {
-                player.getInventory().clear();
-            }
-        });
-
-        plugin.getLogger().info("Juego detenido correctamente.");
+        this.currentRound = 0;
+        plugin.getLogger().info("Game stopped");
     }
 
     private void clearAllGhosts() {
-        // Eliminar entidades rastreadas
         spawnedGhostEntities.removeIf(entity -> {
             if (entity != null && !entity.isDead()) {
                 entity.remove();
@@ -198,7 +159,6 @@ public class GameManager {
             return entity == null || entity.isDead();
         });
 
-        // Limpieza adicional por si acaso
         if (spawnWorld != null) {
             spawnWorld.getEntitiesByClass(Bat.class).forEach(bat -> {
                 if (bat.getPersistentDataContainer().has(GHOST_TYPE_KEY, PersistentDataType.STRING)) {
@@ -226,11 +186,9 @@ public class GameManager {
 
         plugin.getLogger().info("Spawneando fantasmas...");
 
-        // Spawnear fantasmas buenos
         int goodSpawned = spawnGhostsOfType(plugin, goodGhostCount, goodGhostModelId, "good");
         plugin.getLogger().info("Spawneados " + goodSpawned + "/" + goodGhostCount + " fantasmas buenos");
 
-        // Spawnear fantasmas malos
         int evilSpawned = spawnGhostsOfType(plugin, evilGhostCount, evilGhostModelId, "evil");
         plugin.getLogger().info("Spawneados " + evilSpawned + "/" + evilGhostCount + " fantasmas malos");
 
@@ -251,13 +209,11 @@ public class GameManager {
                 continue;
             }
 
-            // Asegurar que la chunk está cargada
             if (!loc.getChunk().isLoaded()) {
                 loc.getChunk().load(true);
             }
 
             try {
-                // Spawnear murciélago
                 Bat bat = spawnWorld.spawn(loc, Bat.class, entity -> {
                     entity.setSilent(true);
                     entity.setAI(true);
@@ -268,7 +224,6 @@ public class GameManager {
                     entity.getPersistentDataContainer().set(GHOST_TYPE_KEY, PersistentDataType.STRING, ghostType);
                 });
 
-                // Aplicar modelo usando ModelEngine API
                 ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(bat);
                 if (modeledEntity == null) {
                     plugin.getLogger().warning("No se pudo crear ModeledEntity para el murciélago en " + loc);
@@ -284,10 +239,8 @@ public class GameManager {
                     continue;
                 }
 
-                // Añadir modelo a la entidad
                 modeledEntity.addModel(activeModel, true);
 
-                // Registrar entidad para limpieza posterior
                 spawnedGhostEntities.add(bat);
                 spawnedCount++;
 
@@ -308,7 +261,6 @@ public class GameManager {
             return null;
         }
 
-        // Asegurar que min <= max
         double minX = Math.min(spawnX1, spawnX2);
         double maxX = Math.max(spawnX1, spawnX2);
         double minY = Math.min(spawnY1, spawnY2);
@@ -316,7 +268,6 @@ public class GameManager {
         double minZ = Math.min(spawnZ1, spawnZ2);
         double maxZ = Math.max(spawnZ1, spawnZ2);
 
-        // Generar coordenadas aleatorias dentro del área definida
         double x = ThreadLocalRandom.current().nextDouble(minX, maxX);
         double y = ThreadLocalRandom.current().nextDouble(minY, maxY);
         double z = ThreadLocalRandom.current().nextDouble(minZ, maxZ);
@@ -354,7 +305,6 @@ public class GameManager {
             return false;
         }
 
-        // Usar el método existente para spawnear un solo fantasma
         int spawned = spawnGhostsOfType(plugin, 1, modelId, ghostType);
         return spawned > 0;
     }
