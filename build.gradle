@@ -1,5 +1,5 @@
 plugins {
-    // id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
     id "com.gradleup.shadow" version "9.0.0-beta11"
     id "java"
 }
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT") // Paper
+    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT")
 
     // ACF Aikar
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
@@ -48,6 +48,10 @@ dependencies {
 
     compileOnly "com.ticxo.modelengine:ModelEngine:R4.0.4"
 
+    // Otros .jar locales
+    compileOnly files('libs/GeoWarePlugin-1.0.0-dev-all.jar')
+    compileOnly files('libs/MediaPlayerSpigot-2.3.jar')
+
 }
 
 shadowJar {
@@ -58,6 +62,7 @@ shadowJar {
 }
 
 build.dependsOn shadowJar
+build.finalizedBy reobfJar
 
 def targetJavaVersion = "21"
 java {
