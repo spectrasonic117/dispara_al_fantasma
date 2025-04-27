@@ -65,7 +65,7 @@ public final class Main extends JavaPlugin {
 
     public void registerCommands() {
         commandManager = new PaperCommandManager(this);
-        commandManager.registerCommand(new DafCommand());
+        commandManager.registerCommand(new DafCommand(this, GameManager.getInstance()));
     }
 
     public void registerEvents() {
