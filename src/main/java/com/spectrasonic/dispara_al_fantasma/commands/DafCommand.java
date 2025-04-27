@@ -49,7 +49,7 @@ public class DafCommand extends BaseCommand {
         player.performCommand("id false");
         gameManager.startGame(plugin, round);
         MessageUtils.sendMessage(sender, "<green>Juego iniciado. ¡Fantasmas han aparecido!</green>");
-        MessageUtils.broadcastTitle("<aqua>¡Dispara al Fantasma!</aqua>", "<white>Ronda " + round + "</white>", 1,
+        MessageUtils.broadcastTitle("<aqua><bold>¡Dispara al Fantasma!</aqua>", "", 1,
                 2, 1);
     }
 
@@ -79,7 +79,7 @@ public class DafCommand extends BaseCommand {
         });
 
         MessageUtils.sendMessage(sender, "<yellow>Juego detenido y entidades eliminadas.</yellow>");
-        MessageUtils.broadcastTitle("<yellow>Juego Terminado</yellow>", "<white>Los fantasmas han desaparecido</white>", 1, 3, 1);
+        // MessageUtils.broadcastTitle("<yellow>Juego Terminado</yellow>", "<white>Los fantasmas han desaparecido</white>", 1, 3, 1);
     }
 
     @Subcommand("reload")

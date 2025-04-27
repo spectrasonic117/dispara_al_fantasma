@@ -34,7 +34,6 @@ public class GameManager {
     private double spawnX2, spawnY2, spawnZ2;
     private int goodGhostCount;
     private int evilGhostCount;
-    private int snowballAmount;
     private String goodGhostModelId;
     private String evilGhostModelId;
     private World spawnWorld;
@@ -87,7 +86,6 @@ public class GameManager {
 
         plugin.getLogger().info("Cantidades de fantasmas: buenos=" + goodGhostCount + ", malos=" + evilGhostCount);
 
-        snowballAmount = plugin.getConfig().getInt("snowball_inventory", 999);
 
         ConfigurationSection modelNamesSection = plugin.getConfig().getConfigurationSection("model_names");
         if (modelNamesSection != null) {
@@ -127,7 +125,7 @@ public class GameManager {
         Bukkit.getOnlinePlayers().forEach(player -> {
             if (player.getGameMode() == GameMode.ADVENTURE) {
                 player.getInventory().clear();
-                ItemStack bow = ItemBuilder.setMaterial("Zipper")
+                ItemStack bow = ItemBuilder.setMaterial("BOW")
                         .setName("<gold>Zipper Anti Fantasmas</gold>")
                         .setLore("<gray>Usa este Zipper para disparar a los fantasmas</gray>")
                         .addEnchantment("infinity", 1)
@@ -136,7 +134,7 @@ public class GameManager {
                         .setFlag("HIDE_ENCHANTS")
                         .build();
                 player.getInventory().addItem(bow);
-                player.getInventory().addItem(new ItemStack(Material.SNOWBALL, snowballAmount));
+                player.getInventory().addItem(new ItemStack(Material.ARROW, 1));
             }
         });
 

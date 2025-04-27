@@ -27,17 +27,31 @@ public class ProjectileHitListener implements Listener {
              return;
         }
 
+        // Cast to Arrow here, as we need it later
+        Arrow arrow = (Arrow) projectile;
         GameManager gameManager = GameManager.getInstance(); // Get GameManager instance
         Main plugin = Main.getInstance(); // Get plugin instance
-        Player shooter = (Player) projectile.getShooter(); // Cast shooter here
+        Player shooter = (Player) arrow.getShooter(); // Get shooter from arrow
 
         // Verificar que el juego esté activo
         if (!gameManager.isActive()) {
+            // Even if game isn't active, maybe remove arrows fired by players?
+            // For now, we only remove arrows if the game IS active.
+            // If you want to remove *any* player-fired arrow always, move the removal logic outside this block.
             return;
         }
 
+        // --- Arrow Removal Logic ---
+        // Remove the arrow entity shortly after impact.
+        // Using a 1-tick delay can sometimes prevent issues.
+        arrow.getServer().getScheduler().runTaskLater(plugin, arrow::remove, 1L);
+        // Alternatively, remove immediately:
+        // arrow.remove();
+        // --------------------------
+
         // Verificar que golpeó a un murciélago / Fantasma
         if (!(event.getHitEntity() instanceof Bat)) {
+            // Arrow removal is already scheduled, just exit if it didn't hit a Bat
             return;
         }
 
@@ -54,8 +68,8 @@ public class ProjectileHitListener implements Listener {
             PointsManager pointsManager = Main.getInstance().getPointsManager();
 
             // Determine points based on ghost type and round
-            if ("evil".equals(ghostType)) {
-                // Evil ghost points decrease
+            if ("good".equals(ghostType)) {
+                // good ghost points decrease
                 switch (currentRound) {
                     case 1:
                         pointsChange = -1; // Ronda 1: evil_ghost -1
@@ -74,8 +88,8 @@ public class ProjectileHitListener implements Listener {
                         plugin.getLogger().warning("Projectile hit evil ghost with unknown round " + currentRound);
                         return; // Exit the method
                 }
-            } else if ("good".equals(ghostType)) {
-                // Good ghost points increase
+            } else if ("evil".equals(ghostType)) {
+                // Evil ghost points increase
                  switch (currentRound) {
                     case 1:
                         pointsChange = 2; // Ronda 1: good_ghost +2
@@ -123,5 +137,6 @@ public class ProjectileHitListener implements Listener {
                 plugin.getLogger().warning("Failed to spawn replacement ghost of type: " + ghostType);
             }
         }
+        // No else needed here, arrow removal happens regardless of hitting a tagged bat
     }
 }
